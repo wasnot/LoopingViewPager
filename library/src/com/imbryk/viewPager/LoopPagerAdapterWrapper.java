@@ -37,9 +37,14 @@ public class LoopPagerAdapterWrapper extends PagerAdapter {
     private SparseArray<ToDestroy> mToDestroy = new SparseArray<ToDestroy>();
 
     private boolean mBoundaryCaching;
+    private boolean mLoopEnable = true;
 
     void setBoundaryCaching(boolean flag) {
         mBoundaryCaching = flag;
+    }
+
+    void setLoopEnable(boolean enable) {
+        mLoopEnable = enable;
     }
 
     LoopPagerAdapterWrapper(PagerAdapter adapter) {
@@ -78,6 +83,8 @@ public class LoopPagerAdapterWrapper extends PagerAdapter {
 
     @Override
     public int getCount() {
+        if(!mLoopEnable)
+            return getRealCount();
         return mAdapter.getCount() + 2;
     }
 
@@ -91,6 +98,9 @@ public class LoopPagerAdapterWrapper extends PagerAdapter {
 
     @Override
     public Object instantiateItem(ViewGroup container, int position) {
+        if(!mLoopEnable){
+            return mAdapter.instantiateItem(container, position);
+        }
         int realPosition = (mAdapter instanceof FragmentPagerAdapter || mAdapter instanceof FragmentStatePagerAdapter)
                 ? position
                 : toRealPosition(position);
@@ -107,6 +117,10 @@ public class LoopPagerAdapterWrapper extends PagerAdapter {
 
     @Override
     public void destroyItem(ViewGroup container, int position, Object object) {
+        if(!mLoopEnable){
+            mAdapter.destroyItem(container, position, object);
+            return;
+        }
         int realFirst = getRealFirstPosition();
         int realLast = getRealLastPosition();
         int realPosition = (mAdapter instanceof FragmentPagerAdapter || mAdapter instanceof FragmentStatePagerAdapter)

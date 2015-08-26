@@ -47,6 +47,7 @@ public class LoopViewPager extends ViewPager {
     OnPageChangeListener mOuterPageChangeListener;
     private LoopPagerAdapterWrapper mAdapter;
     private boolean mBoundaryCaching = DEFAULT_BOUNDARY_CASHING;
+    private boolean mLoopEnable = true;
     
     
     /**
@@ -81,10 +82,15 @@ public class LoopViewPager extends ViewPager {
 
     @Override
     public void setAdapter(PagerAdapter adapter) {
+        setAdapter(adapter, 0);
+    }
+
+    public void setAdapter(PagerAdapter adapter, int position) {
         mAdapter = new LoopPagerAdapterWrapper(adapter);
         mAdapter.setBoundaryCaching(mBoundaryCaching);
+        mAdapter.setLoopEnable(mLoopEnable);
         super.setAdapter(mAdapter);
-        setCurrentItem(0, false);
+        setCurrentItem(position, false);
     }
 
     @Override
@@ -94,10 +100,17 @@ public class LoopViewPager extends ViewPager {
 
     @Override
     public int getCurrentItem() {
+        if (!mLoopEnable)
+            return super.getCurrentItem();
         return mAdapter != null ? mAdapter.toRealPosition(super.getCurrentItem()) : 0;
     }
 
+    @Override
     public void setCurrentItem(int item, boolean smoothScroll) {
+        if (!mLoopEnable) {
+            super.setCurrentItem(item, smoothScroll);
+            return;
+        }
         int realItem = mAdapter.toInnerPosition(item);
         super.setCurrentItem(realItem, smoothScroll);
     }
@@ -134,6 +147,12 @@ public class LoopViewPager extends ViewPager {
 
         @Override
         public void onPageSelected(int position) {
+            if (!mLoopEnable) {
+                if (mOuterPageChangeListener != null) {
+                    mOuterPageChangeListener.onPageSelected(position);
+                }
+                return;
+            }
 
             int realPosition = mAdapter.toRealPosition(position);
             if (mPreviousPosition != realPosition) {
@@ -147,6 +166,14 @@ public class LoopViewPager extends ViewPager {
         @Override
         public void onPageScrolled(int position, float positionOffset,
                 int positionOffsetPixels) {
+            if (!mLoopEnable) {
+                if (mOuterPageChangeListener != null) {
+                    mOuterPageChangeListener.onPageScrolled(position, positionOffset,
+                            positionOffsetPixels);
+                }
+                return;
+            }
+
             int realPosition = position;
             if (mAdapter != null) {
                 realPosition = mAdapter.toRealPosition(position);
@@ -176,6 +203,13 @@ public class LoopViewPager extends ViewPager {
 
         @Override
         public void onPageScrollStateChanged(int state) {
+            if (!mLoopEnable) {
+                if (mOuterPageChangeListener != null) {
+                    mOuterPageChangeListener.onPageScrollStateChanged(state);
+                }
+                return;
+            }
+
             if (mAdapter != null) {
                 int position = LoopViewPager.super.getCurrentItem();
                 int realPosition = mAdapter.toRealPosition(position);
