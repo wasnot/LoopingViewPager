@@ -67,7 +67,7 @@ install {
         pom {
             project {
                 packaging 'aar'
-                name 'toaster'
+                name 'LoopingViewPager'
                 url siteUrl
                 licenses {
                     license {
@@ -90,10 +90,6 @@ install {
             }
         }
     }
-}
-
-dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
 }
 
 task sourcesJar(type: Jar) {
