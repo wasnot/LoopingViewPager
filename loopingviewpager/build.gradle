@@ -1,7 +1,11 @@
-apply plugin: 'com.android.library'
+plugins {
+    id 'com.android.library'
+    id 'maven-publish'
+    id 'signing'
+}
 
 android {
-    compileSdkVersion 19
+    compileSdkVersion 22
     buildToolsVersion '19.1.0'
 
     defaultConfig {
@@ -23,105 +27,73 @@ android {
             java.srcDirs = ['src']
         }
     }
-}
-
-dependencies {
-    compile files('libs/android-support-v4.jar')
-}
-
-
-
-
-apply plugin: 'com.github.dcendents.android-maven'
-apply plugin: 'com.jfrog.bintray'
-
-group = 'net.wasnot.android'
-version = '1.0.0'
-def siteUrl = 'https://github.com/wasnot/LoopingViewPager'
-def gitUrl = 'https://github.com/wasnot/LoopingViewPager.git'
-
-Properties properties = new Properties()
-properties.load(project.rootProject.file('local.properties').newDataInputStream())
-
-
-bintray {
-    user = properties.getProperty("bintray.user")
-    key = properties.getProperty("bintray.apikey")
-
-    configurations = ['archives'] //When uploading configuration files
-    pkg {
-        repo = 'maven'
-        name = 'LoopingViewPager'
-        desc = 'LoopingViewPager'
-        websiteUrl = siteUrl
-        issueTrackerUrl = 'https://github.com/wasnot/LoopingViewPager/issues'
-        vcsUrl = gitUrl
-        licenses = ['Apache-2.0']
-        labels = ['android']
-        publicDownloadNumbers = true
-    }
-}
-
-install {
-    repositories.mavenInstaller {
-        pom {
-            project {
-                packaging 'jar'
-                name 'LoopingViewPager'
-                url siteUrl
-                licenses {
-                    license {
-                        name 'The Apache Software License, Version 2.0'
-                        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                    }
-                }
-                developers {
-                    developer {
-                        id 'wasnot'
-                        name 'wasnot'
-                        email 'wasnot.apps@gmail.com'
-                    }
-                }
-                scm {
-                    connection 'https://github.com/wasnot/LoopingViewPager.git'
-                    developerConnection 'https://github.com/wasnot/LoopingViewPager.git'
-                    url siteUrl
-                }
-            }
+    publishing {
+        singleVariant("release") {
+//            withJavadocJar()
+            withSourcesJar()
         }
     }
 }
 
-task sourcesJar(type: Jar) {
-    from android.sourceSets.main.java.srcDirs
-    classifier = 'sources'
+dependencies {
+    implementation files('libs/android-support-v4.jar')
 }
 
-task javadoc(type: Javadoc) {
-    source = android.sourceSets.main.java.srcDirs
-    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+tasks.register("javadocEmptyJar", org.gradle.jvm.tasks.Jar) {
+    archiveClassifier = "javadoc"
 }
 
-task javadocJar(type: Jar, dependsOn: javadoc) {
-    classifier = 'javadoc'
-    from javadoc.destinationDir
-}
-artifacts {
-    archives javadocJar
-    archives sourcesJar
-}
+group = 'io.github.wasnot'
+version = "0.0.2"
 
-task findConventions << {
-    println project.getConvention()
-}
+afterEvaluate {
+    publishing {
+        publications {
+            maven(MavenPublication) {
+                groupId = group
+                artifactId = "loopingviewpager"
+                version = version
+                from(components["release"])
+                artifact(javadocEmptyJar)
 
-android.libraryVariants.all { variant ->
-    def name = variant.buildType.name
-    if (name.equals(com.android.builder.core.BuilderConstants.DEBUG)) {
-        return; // Skip debug builds.
+                pom {
+                    name = "LoopingViewPager for Android"
+                    description = "LoopingViewPager for Android"
+                    url = "https://github.com/wasnot/LoopingViewPager"
+                    licenses {
+                        license {
+                            name = "The Apache License, Version 2.0"
+                            url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                        }
+                    }
+                    developers {
+                        developer {
+                            id = "wasnot"
+                            name = "wasnot"
+                            email = "wasnot.apps@gmail.com"
+                        }
+                    }
+                    scm {
+                        connection = "scm:git:https://github.com/wasnot/LoopingViewPager.git\""
+                        developerConnection = "scm:git:ssh://github.com/wasnot/LoopingViewPager.git"
+                        url = "https://github.com/wasnot/LoopingViewPager"
+                    }
+                }
+            }
+        }
+        repositories {
+            maven {
+                url = layout.buildDirectory.dir('repos')
+            }
+        }
     }
-    def task = project.tasks.create "jar${name.capitalize()}", Jar
-    task.dependsOn variant.javaCompile
-    task.from variant.javaCompile.destinationDir
-    artifacts.add('archives', task);
+    signing {
+        sign(publishing.publications.maven)
+    }
+}
+
+tasks.register("makeArchive", Zip) {
+    dependsOn("publishMavenPublicationToMavenRepository")
+    from(layout.buildDirectory.dir("repos/io/github/wasnot/loopingviewpager/$version"))
+    into("io/github/wasnot/loopingviewpager/$version")
 }
